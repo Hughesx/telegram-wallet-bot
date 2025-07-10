@@ -1,0 +1,11 @@
+services:
+  - type: worker
+    name: telegram-wallet-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot/main.py
+    envVars:
+      - key: BOT_TOKEN
+        value: 7865989954:AAGSGo1Cn8QGT0n1VZHRO2d_-mWcezi81YI
+      - key: ADMIN_ID
+        value: 6780752295
